@@ -1,6 +1,19 @@
 #include "mr_heaplet.h"
 #include "stdint.h"
 #include "string.h"
+#include "stdio.h"
+
+/*
+ * Prints info about an heaplet.
+ */
+static void __attribute__ ((unused)) print_heaplet(const mr_heaplet_t* heaplet) {
+	printf("Heaplet: %p, size = %zi, number_of_neighbours = %zi\n", heaplet, heaplet->size, heaplet->number_of_neighbours);
+	printf("Neighbours = [");
+	for (size_t i=0; i<heaplet->number_of_neighbours; i++) {
+		printf("%p, ", heaplet->neighbours[i]);
+	}
+	printf("]\n");
+}
 
 /*
  * As the data in a heaplet is made of a t-v data, we can crawl through it to
@@ -16,6 +29,9 @@ static char* next_intem_in_heaplet(char* data) {
  * no more free place.
  */
 static char* goto_empty_space(mr_heaplet_t* heaplet) {
+	if (heaplet->size == 0) {
+		return NULL;
+	}
 	char* next_free_space = heaplet->data;
 	while (*((uint64_t*) next_free_space) != 0) {
 		next_free_space = next_intem_in_heaplet(next_free_space);
@@ -121,13 +137,13 @@ void mr_free(mr_heaplet_t* heaplet) {
  * heaplet will be chosen. The heaplet choosen is returned.
  */
 mr_heaplet_t* mr_add_data(mr_heaplet_t* heaplet, size_t size, const void* data) {
-	if (size + sizeof(uint64_t) > empty_space(heaplet)) {
+	if (size + sizeof(uint64_t) < empty_space(heaplet)) {
 		add_data(heaplet, size, data);
 		return heaplet;
 	}
 	mr_heaplet_t* next_heaplet = choose_next_heaplet(heaplet);
 	if (next_heaplet == NULL) {
-		next_heaplet = new_heaplet(size * heaplet->number_of_neighbours, heaplet);
+		next_heaplet = new_heaplet((size + sizeof(uint64_t)) * heaplet->number_of_neighbours, heaplet);
 		new_neighbour(heaplet, next_heaplet);
 	}
 	return mr_add_data(next_heaplet, size, data);
