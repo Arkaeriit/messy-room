@@ -1,6 +1,5 @@
 #include "mr_heaplet.h"
 #include "stdbool.h"
-#include "stdint.h"
 #include "string.h"
 #include "stdio.h"
 
@@ -115,22 +114,6 @@ static void new_neighbour(mr_heaplet_t* heaplet, mr_heaplet_t* neighbour) {
 }
 
 /*
- * Free a heaplet and all its neighbours, recursively.
- * Takes care not too free the same heaplet twice.
- */
-static void _mr_free(mr_heaplet_t* heaplet, const mr_heaplet_t* last_freed) {
-	for (size_t i=0; i<heaplet->number_of_neighbours; i++) {
-		mr_heaplet_t* target = heaplet->neighbours[i];
-		if (target != last_freed) {
-			_mr_free(target, heaplet);
-		}
-	}
-	free(heaplet->data);
-	free(heaplet->neighbours);
-	free(heaplet);
-}
-
-/*
  * Create a new empty heaplet with no neighbour.
  */
 mr_heaplet_t* mr_new(void) {
@@ -141,6 +124,19 @@ mr_heaplet_t* mr_new(void) {
  * Free a heaplet and all its neighbours, recursively.
  */
 void mr_free(mr_heaplet_t* heaplet) {
+
+	void _mr_free(mr_heaplet_t* heaplet, const mr_heaplet_t* last_freed) {
+		for (size_t i=0; i<heaplet->number_of_neighbours; i++) {
+			mr_heaplet_t* target = heaplet->neighbours[i];
+			if (target != last_freed) {
+				_mr_free(target, heaplet);
+			}
+		}
+		free(heaplet->data);
+		free(heaplet->neighbours);
+		free(heaplet);
+	}
+
 	_mr_free(heaplet, NULL);
 }
 
@@ -159,5 +155,42 @@ mr_heaplet_t* mr_add_data(mr_heaplet_t* heaplet, size_t size, const void* data) 
 		new_neighbour(heaplet, next_heaplet);
 	}
 	return mr_add_data(next_heaplet, size, data);
+}
+
+
+/*
+ * Execute a function on each element of the messy room. The function takes the
+ * size and the content of each element and an extra pointer that can be used
+ * to give arguments to the function.
+ * If the function f returns 0, the next element is searched throught,
+ * otherwize, mr_crawl returns the exit code of the function f.
+ * If all function calls on all elements in the messy room have returned 0,
+ * mr_crawl returns 0.
+ */
+int mr_crawl(mr_heaplet_t* heaplet, mr_crawler_function f, void* extra_args) {
+
+	int _mr_crawl(mr_heaplet_t* heaplet, mr_crawler_function f, void* extra_args, const mr_heaplet_t* previous_heaplet) {
+		char* end_of_data = goto_empty_space(heaplet);
+		char* data = heaplet->data;
+		while(data <= end_of_data) {
+			int rc = f(*((uint64_t*) data), data + sizeof(uint64_t), extra_args);
+			if (rc) {
+				return rc;
+			}
+			data = next_intem_in_heaplet(data);
+		}
+		for (size_t i=0; i<heaplet->number_of_neighbours; i++) {
+			mr_heaplet_t* neighbour = heaplet->neighbours[i];
+			if (neighbour != previous_heaplet) {
+				int rc = _mr_crawl(neighbour, f, extra_args, heaplet);
+				if (rc) {
+					return rc;
+				}
+			}
+		}
+		return 0;
+	}
+
+	return _mr_crawl(heaplet, f, extra_args, NULL);
 }
 
