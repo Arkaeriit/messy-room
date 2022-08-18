@@ -1,4 +1,5 @@
 #include "mr_heaplet.h"
+#include "stdbool.h"
 #include "stdint.h"
 #include "string.h"
 #include "stdio.h"
@@ -7,7 +8,7 @@
  * Prints info about an heaplet.
  */
 static void __attribute__ ((unused)) print_heaplet(const mr_heaplet_t* heaplet) {
-	printf("Heaplet: %p, size = %zi, number_of_neighbours = %zi\n", heaplet, heaplet->size, heaplet->number_of_neighbours);
+	printf("Heaplet: %p, size = %zu, number_of_neighbours = %zu\n", heaplet, heaplet->size, heaplet->number_of_neighbours);
 	printf("Neighbours = [");
 	for (size_t i=0; i<heaplet->number_of_neighbours; i++) {
 		printf("%p, ", heaplet->neighbours[i]);
@@ -114,6 +115,22 @@ static void new_neighbour(mr_heaplet_t* heaplet, mr_heaplet_t* neighbour) {
 }
 
 /*
+ * Free a heaplet and all its neighbours, recursively.
+ * Takes care not too free the same heaplet twice.
+ */
+static void _mr_free(mr_heaplet_t* heaplet, const mr_heaplet_t* last_freed) {
+	for (size_t i=0; i<heaplet->number_of_neighbours; i++) {
+		mr_heaplet_t* target = heaplet->neighbours[i];
+		if (target != last_freed) {
+			_mr_free(target, heaplet);
+		}
+	}
+	free(heaplet->data);
+	free(heaplet->neighbours);
+	free(heaplet);
+}
+
+/*
  * Create a new empty heaplet with no neighbour.
  */
 mr_heaplet_t* mr_new(void) {
@@ -124,12 +141,7 @@ mr_heaplet_t* mr_new(void) {
  * Free a heaplet and all its neighbours, recursively.
  */
 void mr_free(mr_heaplet_t* heaplet) {
-	for (size_t i=1; i<heaplet->number_of_neighbours; i++) { // Start at 1 in order not to stay stuck between the two same neighbours.
-		mr_free(heaplet->neighbours[i]);
-	}
-	free(heaplet->data);
-	free(heaplet->neighbours);
-	free(heaplet);
+	_mr_free(heaplet, NULL);
 }
 
 /*
