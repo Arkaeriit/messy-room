@@ -12,6 +12,7 @@ typedef struct mr_heaplet_s {
 
 mr_heaplet_t* mr_new(void);
 void mr_free(mr_heaplet_t* heaplet);
+mr_heaplet_t* mr_add_data(mr_heaplet_t* heaplet, size_t size, const void* data);
 
 #endif
 

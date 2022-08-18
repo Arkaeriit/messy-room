@@ -1,4 +1,4 @@
-CFLAGS := -g -Wall -Wextra
+CFLAGS := -g -Wall -Wextra -Werror
 CC := gcc
 SRC := mr_heaplet.c
 HEADER := mr_heaplet.h
