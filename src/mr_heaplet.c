@@ -1,7 +1,6 @@
 #include "mr_heaplet.h"
 #include "stdbool.h"
 #include "string.h"
-#include "stdio.h"
 
 /*
  * Prints info about an heaplet.
@@ -114,6 +113,37 @@ static void new_neighbour(mr_heaplet_t* heaplet, mr_heaplet_t* neighbour) {
 }
 
 /*
+ * Writte a 64 bit number in a little endian fashion.
+ */
+static int serlial_64_le(void* arg, uint64_t n, mr_writer_function f) {
+	for (unsigned int i=0; i<sizeof(uint64_t); i++) {
+		f(arg, (n >> (8 * i)) & 0xFF);
+	}
+	return sizeof(uint64_t);
+}
+
+/*
+ * Serialize a messy room by generating each char and putting using the result
+ * in the given callback.
+ * Return the number of char serialized.
+ */
+static size_t serialize_mr(void* arg, const mr_heaplet_t* heaplet, mr_writer_function f, bool first_call) {
+	size_t ret = 0;
+	ret += serlial_64_le(arg, heaplet->size, f);
+	for (size_t i=0; i<heaplet->size; i++) {
+		f(arg, heaplet->data[i]);
+		ret++;
+	}
+	serlial_64_le(arg, first_call ? heaplet->number_of_neighbours : heaplet->number_of_neighbours - 1, f);
+	for(size_t i = (first_call ? 0 : 1); i<heaplet->number_of_neighbours; i++) {
+		ret += serialize_mr(arg, heaplet->neighbours[i], f, false);
+	}
+	return ret;
+}
+
+
+
+/*
  * Create a new empty heaplet with no neighbour.
  */
 mr_heaplet_t* mr_new(void) {
@@ -145,7 +175,7 @@ void mr_free(mr_heaplet_t* heaplet) {
  * heaplet will be chosen. The heaplet choosen is returned.
  */
 mr_heaplet_t* mr_add_data(mr_heaplet_t* heaplet, size_t size, const void* data) {
-	if (size + sizeof(uint64_t) < empty_space(heaplet)) {
+	if (size + sizeof(uint64_t) <= empty_space(heaplet)) {
 		add_data(heaplet, size, data);
 		return heaplet;
 	}
@@ -192,5 +222,47 @@ int mr_crawl(mr_heaplet_t* heaplet, mr_crawler_function f, void* extra_args) {
 	}
 
 	return _mr_crawl(heaplet, f, extra_args, NULL);
+}
+
+/*
+ * Write the content of a messy room to an array, it the given array is NULL,
+ * nothing is written.
+ * Return the number of char needed to serialize the messy room.
+ */
+size_t mr_write_to_array(mr_heaplet_t* heaplet, char* dest) {
+	struct to_array_s {
+		char* data;
+		size_t pointer;
+	};
+
+	void write_to_array(void* arg, char c) {
+		struct to_array_s* context = arg;
+		context->data[context->pointer] = c;
+		context->pointer++;
+	}
+
+	void do_nothing(void* _arg, char _c) {
+		(void) _arg;
+		(void) _c;
+	}
+
+	if (dest == NULL) {
+		return serialize_mr(NULL, heaplet, do_nothing, true);
+	} else {
+		struct to_array_s context = {.data = dest, .pointer = 0};
+		return serialize_mr(&context, heaplet, write_to_array, true);
+	}
+}
+
+/*
+ * Write the content of a messy room to a file.
+ */
+size_t mr_write_to_file(mr_heaplet_t* heaplet, FILE* f) {
+	void write_to_file(void* arg, char c) {
+		FILE* f = arg;
+		fputc(c, f);	
+	}
+	
+	return serialize_mr(f, heaplet, write_to_file, true);
 }
 
