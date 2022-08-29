@@ -149,14 +149,16 @@ static size_t serialize_mr(void* arg, const mr_heaplet_t* heaplet, mr_writer_fun
  * Return true if it can be done and false otherwize.
  */
 static bool deserial_64_le(void* arg, uint64_t* n, mr_reader_function f) {
-	bool ret = true;
 	*n = 0;
 	for (unsigned int i=0; i<sizeof(uint64_t); i++) {
 		char read;
-		ret &= f(arg, &read);
+		bool rc = f(arg, &read);
+		if (!rc) {
+			return false;
+		}
 		*n |= ((uint64_t) read) << (8 * i);
 	}
-	return ret;
+	return true;
 }
 
 static mr_heaplet_t* deserialize_mr(void* arg, mr_reader_function f, mr_heaplet_t* previous_heaplet) {
