@@ -1,6 +1,7 @@
 #ifndef MR_HEAPLET_H
 #define MR_HEAPLET_H
 
+#include "stdbool.h"
 #include "stdlib.h"
 #include "stdint.h"
 #include "stdio.h"
@@ -14,6 +15,7 @@ typedef struct mr_heaplet_s {
 
 typedef int (*mr_crawler_function)(uint64_t size, char* data, void* extra_args);
 typedef void (*mr_writer_function)(void* arg, char c);
+typedef bool (*mr_reader_function)(void* arg, char* c);
 
 mr_heaplet_t* mr_new(void);
 void mr_free(mr_heaplet_t* heaplet);
@@ -22,6 +24,8 @@ int mr_crawl(mr_heaplet_t* heaplet, mr_crawler_function f, void* extra_args);
 
 size_t mr_write_to_array(mr_heaplet_t* heaplet, char* dest);
 size_t mr_write_to_file(mr_heaplet_t* heaplet, FILE* f);
+mr_heaplet_t* mr_read_from_array(char* data, size_t size);
+mr_heaplet_t* mr_read_from_file(FILE* f);
 
 #endif
 

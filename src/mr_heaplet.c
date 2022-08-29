@@ -1,5 +1,4 @@
 #include "mr_heaplet.h"
-#include "stdbool.h"
 #include "string.h"
 
 /*
@@ -141,6 +140,62 @@ static size_t serialize_mr(void* arg, const mr_heaplet_t* heaplet, mr_writer_fun
 	return ret;
 }
 
+/*
+ * Read a 64 bit number in little endian.
+ * Return true if it can be done and false otherwize.
+ */
+static bool deserial_64_le(void* arg, uint64_t* n, mr_reader_function f) {
+	bool ret = true;
+	*n = 0;
+	for (unsigned int i=0; i<sizeof(uint64_t); i++) {
+		char read;
+		ret &= f(arg, &read);
+		*n |= ((uint64_t) read) << (8 * i);
+	}
+	return ret;
+}
+
+static mr_heaplet_t* deserialize_mr(void* arg, mr_reader_function f, mr_heaplet_t* previous_heaplet) {
+	// Reading data
+	uint64_t size;
+	if (!deserial_64_le(arg, &size, f)) {
+		return NULL;
+	}
+	mr_heaplet_t* ret = new_heaplet(size, NULL);
+	for (uint64_t i=0; i<size; i++) {
+		char read;
+		if (!f(arg, &read)) {
+			fprintf(stderr, "[MESSY ROOM] Error, unable to read needed char.\n");
+			mr_free(ret);
+			return NULL;
+		}
+		ret->data[i] = read;
+	}
+	// Reading neighbours
+	if (!deserial_64_le(arg, &ret->number_of_neighbours, f)) {
+		fprintf(stderr, "[MESSY ROOM] Error, unable to read number of neighbours.\n");
+		mr_free(ret);
+		return NULL;
+	}
+	if (previous_heaplet != NULL) {
+		ret->number_of_neighbours++;
+	}
+	ret->neighbours = malloc(sizeof(mr_heaplet_t*) * ret->number_of_neighbours);
+	uint64_t first_index = previous_heaplet == NULL ? 0 : 1;
+	if (previous_heaplet != NULL) {
+		ret->neighbours[0] = previous_heaplet;
+	}
+	for (uint64_t i=first_index; i<ret->number_of_neighbours; i++) {
+		mr_heaplet_t* neighbour = deserialize_mr(arg, f, ret);
+		if (neighbour == NULL) {
+			fprintf(stderr, "[MESSY ROOM] Error, unable to neighbours.\n");
+			mr_free(ret); // TODO: fix invalid free
+			return NULL;
+		}
+		ret->neighbours[i] = neighbour;
+	}
+	return ret;
+}
 
 
 /*
@@ -232,13 +287,13 @@ int mr_crawl(mr_heaplet_t* heaplet, mr_crawler_function f, void* extra_args) {
 size_t mr_write_to_array(mr_heaplet_t* heaplet, char* dest) {
 	struct to_array_s {
 		char* data;
-		size_t pointer;
+		size_t index;
 	};
 
 	void write_to_array(void* arg, char c) {
 		struct to_array_s* context = arg;
-		context->data[context->pointer] = c;
-		context->pointer++;
+		context->data[context->index] = c;
+		context->index++;
 	}
 
 	void do_nothing(void* _arg, char _c) {
@@ -249,7 +304,7 @@ size_t mr_write_to_array(mr_heaplet_t* heaplet, char* dest) {
 	if (dest == NULL) {
 		return serialize_mr(NULL, heaplet, do_nothing, true);
 	} else {
-		struct to_array_s context = {.data = dest, .pointer = 0};
+		struct to_array_s context = {.data = dest, .index = 0};
 		return serialize_mr(&context, heaplet, write_to_array, true);
 	}
 }
@@ -264,5 +319,42 @@ size_t mr_write_to_file(mr_heaplet_t* heaplet, FILE* f) {
 	}
 	
 	return serialize_mr(f, heaplet, write_to_file, true);
+}
+
+/*
+ * Read a messy room serialized in an array.
+ */
+mr_heaplet_t* mr_read_from_array(char* data, size_t size) {
+	struct from_array_s {
+		char* data;
+		size_t size;
+		size_t index;
+	};
+
+	bool read_byte(void* arg, char* c) {
+		struct from_array_s* context = arg;
+		if (context->index < context->size) {
+			*c = context->data[context->index];
+			context->index++;
+			return true;
+		}
+		return false;
+	}
+	
+	struct from_array_s context = {.data = data, .size = size, .index = 0};
+	return deserialize_mr(&context, read_byte, NULL);
+}
+
+/*
+ * Read a messy room serialized in a file.
+ */
+mr_heaplet_t* mr_read_from_file(FILE* f) {
+	bool read_byte(void* arg, char* c) {
+		int ch = fgetc((FILE*) arg);
+		*c = ch;
+		return ch != EOF;
+	}
+	
+	return deserialize_mr(f, read_byte, NULL);
 }
 

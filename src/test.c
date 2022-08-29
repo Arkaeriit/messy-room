@@ -52,11 +52,20 @@ static void serialize_test(void) {
 	const char* s3 = "^.^";
 	mr_add_data(heaplet, strlen(s3), s3);
 
-	FILE* f = fopen("test.mr", "w");
+	FILE* f = fopen("test1.mr", "w");
 	mr_write_to_file(heaplet, f);
 	fclose(f);
 
+	f = fopen("test1.mr", "r");
+	mr_heaplet_t* read_heaplet = mr_read_from_file(f);
+	fclose(f);
+
+	f = fopen("test2.mr", "w");
+	mr_write_to_file(read_heaplet, f);
+	fclose(f);
+
 	mr_free(heaplet);
+	mr_free(read_heaplet);
 }
 
 int main(void) {

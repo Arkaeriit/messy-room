@@ -14,3 +14,5 @@ test: $(OBJS)
 
 clean:
 	rm -rf $(OBJS)
+	rm -rf test1.mr
+	rm -rf test2.mr
