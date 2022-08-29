@@ -1,5 +1,9 @@
 #include "mr_heaplet.h"
+#include "stdbool.h"
 #include "string.h"
+
+typedef bool (*mr_reader_function)(void* arg, char* c);
+typedef void (*mr_writer_function)(void* arg, char c);
 
 /*
  * Prints info about an heaplet.
