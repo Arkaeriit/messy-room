@@ -1,5 +1,5 @@
-#ifndef MR_HEAPLET_H
-#define MR_HEAPLET_H
+#ifndef MESSY_ROOM_H
+#define MESSY_ROOM_H
 
 #include "stdlib.h"
 #include "stdint.h"

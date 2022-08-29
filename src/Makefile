@@ -1,18 +1,25 @@
 CFLAGS += -g -Wall -Wextra -Werror
 CC ?= gcc
 
-SRC := mr_heaplet.c test.c
-HEADER := mr_heaplet.h
+SRC := messy-room.c test.c
+HEADER := messy-room.h
 
 OBJS := $(patsubst %.c,%.o,$(SRC))
+
+all: test libmessy-room.a
 
 test: $(OBJS)
 	$(CC) $^ $(CFLAGS) -o $@
 
-%.o: %.c %.h
+libmessy-room.a: messy-room.o
+	ar rcs $@ $^
+
+%.o: %.c $(HEADER)
 	$(CC) -c $< $(CFLAGS) -o $@
 
 clean:
 	rm -rf $(OBJS)
+	rm -rf test
+	rm -rf libmessy-room.a
 	rm -rf test1.mr
 	rm -rf test2.mr
