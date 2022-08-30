@@ -80,6 +80,22 @@ static void help(const char* prg_name) {
 	printf("\n");
 }
 
+#define CHECK_KEY(k) \
+	if (strlen(k) > K_SIZE) { \
+		fprintf(stderr, "Error: key in larger than %u bytes.\n", K_SIZE); \
+		return 4; \
+	} \
+	if (strlen(k) == 0) { \
+		fprintf(stderr, "Error: empty key.\n"); \
+		return 8; \
+	}
+
+#define CHECK_VALUE(v) \
+	if (strlen(v) > V_SIZE) { \
+		fprintf(stderr, "Error: value in larger than %u bytes.\n", V_SIZE); \
+		return 4; \
+	}
+
 int main(int argc, char** argv) {
 	if (argc < 2) { // Getting help
 		help(argv[0]);
@@ -111,14 +127,7 @@ int main(int argc, char** argv) {
 		if (argc != 3) {
 			goto invalid_arg;
 		}
-		if (strlen(argv[2]) > K_SIZE) {
-			fprintf(stderr, "Error: key in larger than %u bytes.\n", K_SIZE);
-			return 4;
-		}
-		if (strlen(argv[2]) == 0) {
-			fprintf(stderr, "Error: empty key.\n");
-			return 8;
-		}
+		CHECK_KEY(argv[2]);
 		mr_heaplet_t* heaplet = read_db();
 		if (kvomr_delete(heaplet, argv[2])) {
 			printf("Successfully deleted element at key %s\n", argv[2]);
@@ -131,14 +140,7 @@ int main(int argc, char** argv) {
 	}
 
 	if (argc == 2) { // Reading an entry
-		if (strlen(argv[1]) > K_SIZE) {
-			fprintf(stderr, "Error: key in larger than %u bytes.\n", K_SIZE);
-			return 4;
-		}
-		if (strlen(argv[1]) == 0) {
-			fprintf(stderr, "Error: empty key.\n");
-			return 8;
-		}
+		CHECK_KEY(argv[1]);
 		mr_heaplet_t* heaplet = read_db();
 		char* ret = kvomr_read(heaplet, argv[1]);
 		if (ret == NULL) {
@@ -151,18 +153,8 @@ int main(int argc, char** argv) {
 	}
 
 	if (argc == 3) { // Writing an entry
-		if (strlen(argv[1]) > K_SIZE) {
-			fprintf(stderr, "Error: key in larger than %u bytes.\n", K_SIZE);
-			return 4;
-		}
-		if (strlen(argv[2]) > V_SIZE) {
-			fprintf(stderr, "Error: value in larger than %u bytes.\n", V_SIZE);
-			return 4;
-		}
-		if (strlen(argv[1]) == 0) {
-			fprintf(stderr, "Error: empty key.\n");
-			return 8;
-		}
+		CHECK_KEY(argv[1]);
+		CHECK_VALUE(argv[2]);
 		mr_heaplet_t* heaplet = read_db();
 		char* already_there = kvomr_read(heaplet, argv[1]);
 		kvomr_write(heaplet, argv[1], argv[2]);
