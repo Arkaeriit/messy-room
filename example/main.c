@@ -76,7 +76,7 @@ static void help(const char* prg_name) {
 	printf("  %s --list       TODO\n", prg_name);
 	printf("  %s <k> <v>      Store the message <v> at the key <k>\n", prg_name);
 	printf("  %s <k>          Show the message at the key <k>\n", prg_name);
-	printf("  %s --del <k>    TODO\n", prg_name);
+	printf("  %s --del <k>    Delete the value at the key <k>\n", prg_name);
 	printf("\n");
 }
 
@@ -97,8 +97,22 @@ int main(int argc, char** argv) {
 	}
 
 	if (!strcmp(argv[1], "--del")) { // Remove an element
-		printf("TODO\n");
-		return 1;
+		if (argc != 3) {
+			goto invalid_arg;
+		}
+		if (strlen(argv[2]) > K_SIZE) {
+			fprintf(stderr, "Error: key in larger than %u bytes.\n", K_SIZE);
+			return 4;
+		}
+		mr_heaplet_t* heaplet = read_db();
+		if (kvomr_delete(heaplet, argv[2])) {
+			printf("Successfully deleted element at key %s\n", argv[2]);
+		} else {
+			printf("No value indexed with the key \"%s\".\n", argv[1]);
+		}
+		save_db(heaplet);
+		mr_free(heaplet);
+		return 0;
 	}
 
 	if (argc == 2) { // Reading an entry
@@ -139,7 +153,7 @@ int main(int argc, char** argv) {
 		return 0;
 	}
 
-/*invalid_arg:*/
+invalid_arg:
 	fprintf(stderr, "Error: invalid arguments.\n");
 	fprintf(stderr, "Use `%s --help` for more information.\n", argv[0]);
 	return 1;

@@ -70,3 +70,17 @@ char* kvomr_read(mr_heaplet_t* heaplet, const char* k) {
 	return element->value;
 }
 
+/*
+ * Delete an element from the database. Return true if the element is found
+ * and false if it is not.
+ */
+bool kvomr_delete(mr_heaplet_t* heaplet, const char* k) {
+	kv_t* element = get_from_key(heaplet, k);
+	if (element == NULL) {
+		return false;
+	}
+	uint64_t* element_size_pnt = (uint64_t*) ((char*) element - sizeof(uint64_t));
+	*element_size_pnt = 0;
+	return true;
+}
+
