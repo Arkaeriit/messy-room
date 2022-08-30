@@ -116,16 +116,18 @@ bool kvomr_delete(mr_heaplet_t* heaplet, const char* k) {
  * Return a NULL terminated list of all the element in the db.
  */
 char** kvomr_list(mr_heaplet_t* heaplet) {
+	struct lister_arg_s {
+		char** list;
+		size_t index;
+	};
+
 	int elem_lister(uint64_t size, char* data, void* extra_args) {
 		if (size == sizeof(kv_t)) {
 			kv_t* element = (kv_t*) data;
 			if (strcmp(element->key, "")) {
-				char** arg = extra_args;
-				size_t index = 0;
-				while(arg[index] != NULL) { // TODO: optimize
-					index++;
-				}
-				arg[index] = element->key;
+				struct lister_arg_s* arg = extra_args;
+				arg->list[arg->index] = element->key;
+				arg->index++;
 			}
 		}
 		return 0;
@@ -136,6 +138,9 @@ char** kvomr_list(mr_heaplet_t* heaplet) {
 	for (size_t i=0; i<=n_elems; i++) {
 		ret[i] = NULL;
 	}
-	mr_crawl(heaplet, elem_lister, ret);
+
+	struct lister_arg_s arg = {.list = ret, .index = 0};
+	mr_crawl(heaplet, elem_lister, &arg);
 	return ret;
 }
+
