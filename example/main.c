@@ -73,7 +73,7 @@ static void help(const char* prg_name) {
 	printf("\n");
 	printf("Usage:\n");
 	printf("  %s --help       Show this help\n", prg_name);
-	printf("  %s --list       TODO\n", prg_name);
+	printf("  %s --list       List all keys stored\n", prg_name);
 	printf("  %s <k> <v>      Store the message <v> at the key <k>\n", prg_name);
 	printf("  %s <k>          Show the message at the key <k>\n", prg_name);
 	printf("  %s --del <k>    Delete the value at the key <k>\n", prg_name);
@@ -92,8 +92,19 @@ int main(int argc, char** argv) {
 	}
 
 	if (!strcmp(argv[1], "--list")) { // Listing all saved keys
-		printf("TODO\n");
-		return 1;
+		if (argc != 2) {
+			goto invalid_arg;
+		}
+		mr_heaplet_t* heaplet = read_db();
+		char** key_list = kvomr_list(heaplet);
+		size_t i = 0;
+		while(key_list[i] != NULL) {
+			printf("%s\n", key_list[i]);
+			i++;
+		}
+		free(key_list);
+		mr_free(heaplet);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "--del")) { // Remove an element
@@ -103,6 +114,10 @@ int main(int argc, char** argv) {
 		if (strlen(argv[2]) > K_SIZE) {
 			fprintf(stderr, "Error: key in larger than %u bytes.\n", K_SIZE);
 			return 4;
+		}
+		if (strlen(argv[2]) == 0) {
+			fprintf(stderr, "Error: empty key.\n");
+			return 8;
 		}
 		mr_heaplet_t* heaplet = read_db();
 		if (kvomr_delete(heaplet, argv[2])) {
@@ -119,6 +134,10 @@ int main(int argc, char** argv) {
 		if (strlen(argv[1]) > K_SIZE) {
 			fprintf(stderr, "Error: key in larger than %u bytes.\n", K_SIZE);
 			return 4;
+		}
+		if (strlen(argv[1]) == 0) {
+			fprintf(stderr, "Error: empty key.\n");
+			return 8;
 		}
 		mr_heaplet_t* heaplet = read_db();
 		char* ret = kvomr_read(heaplet, argv[1]);
@@ -139,6 +158,10 @@ int main(int argc, char** argv) {
 		if (strlen(argv[2]) > V_SIZE) {
 			fprintf(stderr, "Error: value in larger than %u bytes.\n", V_SIZE);
 			return 4;
+		}
+		if (strlen(argv[1]) == 0) {
+			fprintf(stderr, "Error: empty key.\n");
+			return 8;
 		}
 		mr_heaplet_t* heaplet = read_db();
 		char* already_there = kvomr_read(heaplet, argv[1]);
