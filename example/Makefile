@@ -13,7 +13,7 @@ messy-kv: $(OBJS) ../src/libmessy-room.a
 
 ../src/libmessy-room.a: ../src/messy-room.c ../src/messy-room.h
 	cd ../src; \
-	make $@
+	make libmessy-room.a
 
 %.o: %.c $(HEADER)
 	$(CC) -c $< $(CFLAGS) -o $@
