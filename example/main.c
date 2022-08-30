@@ -68,60 +68,80 @@ static void save_db(mr_heaplet_t* heaplet) {
 	fclose(f);
 }
 
+static void help(const char* prg_name) {
+	printf("kvomr: A CLI key-value database using messy-room as the back end.\n");
+	printf("\n");
+	printf("Usage:\n");
+	printf("  %s --help       Show this help\n", prg_name);
+	printf("  %s --list       TODO\n", prg_name);
+	printf("  %s <k> <v>      Store the message <v> at the key <k>\n", prg_name);
+	printf("  %s <k>          Show the message at the key <k>\n", prg_name);
+	printf("  %s --del <k>    TODO\n", prg_name);
+	printf("\n");
+}
+
 int main(int argc, char** argv) {
+	if (argc < 2) { // Getting help
+		help(argv[0]);
+		return 0;
+	}
+
+	if (!strcmp(argv[1], "--help") || !strcmp(argv[1], "-help") || !strcmp(argv[1], "-h")) { // Getting help
+		help(argv[0]);
+		return 0;
+	}
+
+	if (!strcmp(argv[1], "--list")) { // Listing all saved keys
+		printf("TODO\n");
+		return 1;
+	}
+
+	if (!strcmp(argv[1], "--del")) { // Remove an element
+		printf("TODO\n");
+		return 1;
+	}
+
 	if (argc == 2) { // Reading an entry
+		if (strlen(argv[1]) > K_SIZE) {
+			fprintf(stderr, "Error: key in larger than %u bytes.\n", K_SIZE);
+			return 4;
+		}
 		mr_heaplet_t* heaplet = read_db();
 		char* ret = kvomr_read(heaplet, argv[1]);
 		if (ret == NULL) {
 			printf("No value indexed with the key \"%s\".\n", argv[1]);
 		} else {
-			printf("%s", ret);
+			printf("%s\n", ret);
 		}
 		mr_free(heaplet);
 		return 0;
 	}
 
 	if (argc == 3) { // Writing an entry
+		if (strlen(argv[1]) > K_SIZE) {
+			fprintf(stderr, "Error: key in larger than %u bytes.\n", K_SIZE);
+			return 4;
+		}
+		if (strlen(argv[2]) > V_SIZE) {
+			fprintf(stderr, "Error: value in larger than %u bytes.\n", V_SIZE);
+			return 4;
+		}
 		mr_heaplet_t* heaplet = read_db();
 		char* already_there = kvomr_read(heaplet, argv[1]);
 		kvomr_write(heaplet, argv[1], argv[2]);
 		if (already_there == NULL) {
-			printf("Added value to key \"%s\"\n.", argv[1]);
+			printf("Added value to key \"%s\".\n", argv[1]);
 		} else {
-			printf("Overwrote value to key \"%s\"\n.", argv[1]);
+			printf("Overwrote value to key \"%s\".\n", argv[1]);
 		}
 		save_db(heaplet);
 		mr_free(heaplet);
 		return 0;
 	}
 
-	printf("OnO\n");
+/*invalid_arg:*/
+	fprintf(stderr, "Error: invalid arguments.\n");
+	fprintf(stderr, "Use `%s --help` for more information.\n", argv[0]);
 	return 1;
-
-	if (argc != 4 && argc != 3) {
-		return -1;
-	}
-
-	FILE* f = fopen(argv[1], "r");
-	mr_heaplet_t* heaplet;
-	if (f == NULL) {
-		heaplet = mr_new();
-	} else {
-		heaplet = mr_read_from_file(f);
-		fclose(f);
-	}
-
-	if (argc == 4) {
-		kvomr_write(heaplet, argv[2], argv[3]);
-		f = fopen(argv[1], "w");
-		mr_write_to_file(heaplet, f);
-		fclose(f);
-	} else {
-		printf("%s\n", kvomr_read(heaplet, argv[2]) == NULL ? "(null)" : kvomr_read(heaplet, argv[2]));
-	}
-
-	mr_free(heaplet);
-
-	return 0;
 }
 
