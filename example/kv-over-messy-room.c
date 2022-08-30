@@ -66,15 +66,24 @@ static size_t elems_in_db(mr_heaplet_t* heaplet) {
  */
 void kvomr_write(mr_heaplet_t* heaplet, const char* k, const char* v) {
 	kv_t* element = get_from_key(heaplet, k);
+	if (element == NULL) { // Try to reclaim a deleted element
+		element = get_from_key(heaplet, "");
+	}
 	if (element == NULL) {
-		kv_t new_element;
-		memset(new_element.key, 0, K_SIZE+1);
-		memset(new_element.value, 0, V_SIZE+1);
-		strcpy(new_element.key, k);
-		strcpy(new_element.value, v);
-		mr_add_data(heaplet, sizeof(kv_t), &new_element);
+		kv_t* emptied_element = get_from_key(heaplet, "");
+		if (emptied_element == NULL) {
+			kv_t new_element;
+			memset(new_element.key, 0, K_SIZE+1);
+			memset(new_element.value, 0, V_SIZE+1);
+			strcpy(new_element.key, k);
+			strcpy(new_element.value, v);
+			mr_add_data(heaplet, sizeof(kv_t), &new_element);
+		} else {
+		}
 		return;
 	}
+	memset(element->key, 0, K_SIZE+1);
+	strcpy(element->key, k);
 	memset(element->value, 0, V_SIZE+1);
 	strcpy(element->value, v);
 }
