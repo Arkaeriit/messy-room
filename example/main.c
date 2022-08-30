@@ -82,7 +82,7 @@ static void help(const char* prg_name) {
 
 #define CHECK_KEY(k) \
 	if (strlen(k) > K_SIZE) { \
-		fprintf(stderr, "Error: key in larger than %u bytes.\n", K_SIZE); \
+		fprintf(stderr, "Error: key in larger than %i bytes.\n", K_SIZE); \
 		return 4; \
 	} \
 	if (strlen(k) == 0) { \
@@ -92,7 +92,7 @@ static void help(const char* prg_name) {
 
 #define CHECK_VALUE(v) \
 	if (strlen(v) > V_SIZE) { \
-		fprintf(stderr, "Error: value in larger than %u bytes.\n", V_SIZE); \
+		fprintf(stderr, "Error: value in larger than %i bytes.\n", V_SIZE); \
 		return 4; \
 	}
 
