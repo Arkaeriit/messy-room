@@ -263,7 +263,10 @@ int mr_crawl(mr_heaplet_t* heaplet, mr_crawler_function f, void* extra_args) {
 	int _mr_crawl(mr_heaplet_t* heaplet, mr_crawler_function f, void* extra_args, const mr_heaplet_t* previous_heaplet) {
 		char* end_of_data = goto_empty_space(heaplet);
 		char* data = heaplet->data;
-		while(data <= end_of_data) {
+		if (end_of_data == NULL) {
+			end_of_data = data + heaplet->size;
+		}
+		while(data < end_of_data) {
 			int rc = f(*((uint64_t*) data), data + sizeof(uint64_t), extra_args);
 			if (rc) {
 				return rc;
