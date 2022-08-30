@@ -2,9 +2,6 @@
 #include <stdint.h>
 #include <string.h>
 
-#define K_SIZE 255
-#define V_SIZE 255
-
 typedef struct {
 	char key[K_SIZE + 1];
 	char value[K_SIZE + 1];
@@ -60,5 +57,16 @@ void kvomr_write(mr_heaplet_t* heaplet, const char* k, const char* v) {
 	}
 	memset(element->value, 0, V_SIZE+1);
 	strcpy(element->value, v);
+}
+
+/*
+ * Find a value from a key. Return NULL if not found.
+ */
+char* kvomr_read(mr_heaplet_t* heaplet, const char* k) {
+	kv_t* element = get_from_key(heaplet, k);
+	if (element == NULL) {
+		return NULL;
+	}
+	return element->value;
 }
 

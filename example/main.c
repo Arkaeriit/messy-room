@@ -1,7 +1,7 @@
 #include "kv-over-messy-room.h"
 
 int main(int argc, char** argv) {
-	if (argc != 4) {
+	if (argc != 4 && argc != 3) {
 		return -1;
 	}
 
@@ -14,12 +14,16 @@ int main(int argc, char** argv) {
 		fclose(f);
 	}
 
-	kvomr_write(heaplet, argv[2], argv[3]);
+	if (argc == 4) {
+		kvomr_write(heaplet, argv[2], argv[3]);
+		f = fopen(argv[1], "w");
+		mr_write_to_file(heaplet, f);
+		fclose(f);
+	} else {
+		printf("%s\n", kvomr_read(heaplet, argv[2]) == NULL ? "(null)" : kvomr_read(heaplet, argv[2]));
+	}
 
-	f = fopen(argv[1], "w");
-	mr_write_to_file(heaplet, f);
 	mr_free(heaplet);
-	fclose(f);
 
 	return 0;
 }
