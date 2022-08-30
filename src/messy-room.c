@@ -187,6 +187,9 @@ static mr_heaplet_t* deserialize_mr(void* arg, mr_reader_function f, mr_heaplet_
 		ret->number_of_neighbours++;
 	}
 	ret->neighbours = malloc(sizeof(mr_heaplet_t*) * ret->number_of_neighbours);
+	for (size_t i=0; i<ret->number_of_neighbours; i++) {
+		ret->neighbours[i] = NULL; // Ensure no segfault if the deserialization must be aborted.
+	}
 	uint64_t first_index = previous_heaplet == NULL ? 0 : 1;
 	if (previous_heaplet != NULL) {
 		ret->neighbours[0] = previous_heaplet;
@@ -195,7 +198,7 @@ static mr_heaplet_t* deserialize_mr(void* arg, mr_reader_function f, mr_heaplet_
 		mr_heaplet_t* neighbour = deserialize_mr(arg, f, ret);
 		if (neighbour == NULL) {
 			fprintf(stderr, "[MESSY ROOM] Error, unable to neighbours.\n");
-			mr_free(ret); // TODO: fix invalid free
+			mr_free(ret);
 			return NULL;
 		}
 		ret->neighbours[i] = neighbour;
@@ -219,7 +222,7 @@ void mr_free(mr_heaplet_t* heaplet) {
 	void _mr_free(mr_heaplet_t* heaplet, const mr_heaplet_t* last_freed) {
 		for (size_t i=0; i<heaplet->number_of_neighbours; i++) {
 			mr_heaplet_t* target = heaplet->neighbours[i];
-			if (target != last_freed) {
+			if (target != last_freed && target != NULL) {
 				_mr_free(target, heaplet);
 			}
 		}
